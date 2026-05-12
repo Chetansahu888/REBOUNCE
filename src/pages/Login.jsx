@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, LogIn, ArrowLeft } from 'lucide-react';
+import { User, Lock, LogIn, ArrowLeft } from 'lucide-react';
 import AntiGravityBackground from '../components/AntiGravityBackground';
 import { supabase } from '../supabase';
 import toast from 'react-hot-toast';
+import BotivateFooter from '../components/BotivateFooter';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (!email || !password) {
-      toast.error('Please enter both email and password');
+    if (!username || !password) {
+      toast.error('Please enter both username and password');
       return;
     }
 
@@ -24,17 +25,14 @@ const Login = () => {
       const { data, error } = await supabase
         .from('submissions')
         .select('*')
-        .eq('email', email)
+        .eq('user_name', username)
         .eq('password', password)
         .maybeSingle();
 
-   
-      
       if (error || !data) {
-        throw new Error('Invalid email or password');
+        throw new Error('Invalid username or password');
       }
 
-      // Store user info in sessionStorage (disappears when tab is closed)
       sessionStorage.setItem('user', JSON.stringify(data));
 
       toast.success(`Welcome back, ${data.full_name}!`);
@@ -72,15 +70,15 @@ const Login = () => {
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="relative">
-              <label className={labelStyles}>Email Address</label>
+              <label className={labelStyles}>Username</label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#FF1493]" size={18} />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-[#FF1493]" size={18} />
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className={inputStyles}
-                  placeholder="Enter your email"
+                  placeholder="Enter your username"
                 />
               </div>
             </div>
@@ -117,11 +115,7 @@ const Login = () => {
             </motion.button>
           </form>
 
-          <div className="mt-8 text-center">
-            <p className="text-slate-500 text-xs tracking-widest uppercase">
-              Powered by <span className="text-[#FF1493] font-black">Botivate</span>
-            </p>
-          </div>
+          <BotivateFooter variant="simple" />
         </div>
       </div>
     </div>
