@@ -73,3 +73,51 @@ body {
 }
 
 
+
+/* React Datepicker Custom Styling */
+.react-datepicker {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  border-radius: 1.5rem !important;
+  font-family: inherit !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
+  overflow: hidden !important;
+}
+
+.react-datepicker__header {
+  background: rgba(255, 255, 255, 0.4) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+  padding-top: 15px !important;
+}
+
+.react-datepicker__day--selected {
+  background-color: #FF1493 !important;
+  border-radius: 0.75rem !important;
+}
+
+.react-datepicker__day:hover {
+  background-color: rgba(255, 20, 147, 0.1) !important;
+  border-radius: 0.75rem !important;
+}
+
+.react-datepicker__current-month {
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: #1e293b !important;
+}
+
+.react-datepicker__year-read-view, 
+.react-datepicker__month-read-view {
+  font-weight: 800 !important;
+  color: #FF1493 !important;
+}
+
+.react-datepicker__navigation {
+  top: 15px !important;
+}
+
+.datepicker-container .w-full {
+  width: 100% !important;
+}

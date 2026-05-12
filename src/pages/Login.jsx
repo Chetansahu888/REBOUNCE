@@ -21,15 +21,24 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error } = await supabase
+        .from('submissions')
+        .select('*')
+        .eq('email', email)
+        .eq('password', password)
+        .maybeSingle();
 
-      if (error) throw error;
+   
+      
+      if (error || !data) {
+        throw new Error('Invalid email or password');
+      }
 
-      toast.success('Signed in successfully!');
-      navigate('/'); // Redirect to landing page after login
+      // Store user info in sessionStorage (disappears when tab is closed)
+      sessionStorage.setItem('user', JSON.stringify(data));
+
+      toast.success(`Welcome back, ${data.full_name}!`);
+      navigate('/dashboard');
     } catch (error) {
       toast.error(error.message || 'Error signing in');
     } finally {
@@ -43,11 +52,11 @@ const Login = () => {
   return (
     <div className="h-full w-full flex items-center justify-center p-4 relative overflow-hidden">
       <AntiGravityBackground />
-      
+
       <div className="w-full max-w-md relative z-10 animate-bounce-in flex flex-col justify-center max-h-full py-4">
         <div className="glass-card w-full box-border rounded-[2rem] md:rounded-[2.5rem] p-8 flex flex-col relative overflow-y-auto overflow-x-hidden max-h-[85vh] scrollbar-hide">
-          
-          <button 
+
+          <button
             onClick={() => navigate('/')}
             className="absolute top-6 left-6 p-2 rounded-full hover:bg-white/40 transition-colors text-slate-600"
           >

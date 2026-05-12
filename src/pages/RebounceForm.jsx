@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Home } from 'lucide-react';
+import { Home, Download, FileText, Check } from 'lucide-react';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import SignatureCanvas from 'react-signature-canvas';
@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import toast, { Toaster } from 'react-hot-toast';
 import { jsPDF } from 'jspdf';
 import AntiGravityBackground from '../components/AntiGravityBackground';
+import { supabase } from '../supabase';
 
 const WAIVER_TEXT = `<strong>Participant Agreement, Release and Assumption of Risk Agreement</strong>
 (REBOUNCE RAIPUR LLP)
@@ -88,6 +89,7 @@ I am 18 years of age or older. I am entering this agreement on behalf of myself,
 
 const RebounceForm = () => {
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     mobile: '',
@@ -98,11 +100,40 @@ const RebounceForm = () => {
     signature: null,
     agreed: false,
   });
+  const [pdfBlob, setPdfBlob] = useState(null);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
 
   const sigCanvas = useRef(null);
 
-  const handleNext = () => setStep(step + 1);
+  const handleNext = async () => {
+    if (step === 1) {
+      // Small delay just to show "Checking" for feedback, then jump
+      setLoading(true);
+      setTimeout(() => {
+        setLoading(false);
+        setStep(2);
+        if (formData.fullName) {
+          toast.success("Details Auto-filled!", { icon: '✨' });
+        }
+      }, 300);
+      return;
+    }
+    setStep(step + 1);
+  };
   const handleBack = () => setStep(step - 1);
+
+  const downloadPDF = () => {
+    if (!pdfBlob) return;
+    const url = URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Rebounce_Waiver_${formData.fullName.replace(/\s+/g, '_')}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setStep(4); // Move to success step after download
+  };
 
   const calculateAge = (dob) => {
     if (!dob) return '';
@@ -115,6 +146,37 @@ const RebounceForm = () => {
     sigCanvas.current.clear();
     setFormData({ ...formData, signature: null });
   };
+
+  // Pre-fetch user data as they type for "Instant" feel
+  useEffect(() => {
+    const fetchExistingUser = async () => {
+      // Check if mobile number is complete (usually 12 digits including 91 for India)
+      if (formData.mobile.length >= 12 && step === 1) {
+        try {
+          const { data } = await supabase
+            .from('submissions')
+            .select('full_name, email, dob, gender')
+            .eq('mobile', formData.mobile)
+            .limit(1)
+            .maybeSingle();
+
+          if (data) {
+            setFormData(prev => ({
+              ...prev,
+              fullName: prev.fullName || data.full_name || '',
+              email: prev.email || data.email || '',
+              dob: prev.dob || (data.dob ? new Date(data.dob) : null),
+              gender: prev.gender || data.gender || '',
+            }));
+          }
+        } catch (err) {
+          console.error("Background fetch error:", err);
+        }
+      }
+    };
+
+    fetchExistingUser();
+  }, [formData.mobile, step]);
 
   useEffect(() => {
     let timer;
@@ -149,10 +211,10 @@ const RebounceForm = () => {
     // Waiver Content
     let yPos = 95;
     const pageHeight = doc.internal.pageSize.getHeight();
-    
+
     // Split text by lines and handle bold tags
     const lines = WAIVER_TEXT.split('\n');
-    
+
     lines.forEach(line => {
       if (!line.trim()) {
         yPos += 5; // Add space for empty lines
@@ -161,12 +223,12 @@ const RebounceForm = () => {
 
       // Check for bold content
       const hasBold = line.includes('<strong>');
-      
+
       if (hasBold) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         const cleanLine = line.replace(/<strong>/g, '').replace(/<\/strong>/g, '');
-        
+
         // Handle potential wrapping even for bold headings
         const wrappedHeadings = doc.splitTextToSize(cleanLine, contentWidth);
         wrappedHeadings.forEach(hLine => {
@@ -230,36 +292,21 @@ const RebounceForm = () => {
       doc.setFont("helvetica", "italic");
       doc.setFontSize(9);
       doc.setTextColor(120, 120, 120);
-      
+
       const footerText = "Powered by Botivate";
       // Calculate text width approximately for centering
       const textWidth = doc.getStringUnitWidth(footerText) * doc.internal.getFontSize() / doc.internal.scaleFactor;
       const x = (pageWidth - textWidth) / 2;
       const y = pageHeight - 10;
-      
+
       doc.text(footerText, x, y);
       doc.link(x, y - 4, textWidth, 6, { url: 'https://botivate.in/' });
     }
 
-    // Robust download for mobile/iOS
-    const pdfBlob = doc.output('blob');
-    const url = URL.createObjectURL(pdfBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Rebounce_Waiver_${data.fullName.replace(/\s+/g, '_')}.pdf`;
-    
-    // Force download without opening (works better on mobile)
-    document.body.appendChild(link);
-    link.click();
-    
-    // Cleanup
-    setTimeout(() => {
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }, 100);
+    return doc.output('blob');
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (sigCanvas.current.isEmpty()) {
       toast.error("Please provide a signature first.", {
         style: {
@@ -281,15 +328,55 @@ const RebounceForm = () => {
       submittedAt: new Date().toISOString()
     };
 
-    // Save to local storage
-    const existingData = JSON.parse(localStorage.getItem('rebounceSubmissions') || '[]');
-    existingData.push(finalData);
-    localStorage.setItem('rebounceSubmissions', JSON.stringify(existingData));
+    setLoading(true);
 
-    // Generate PDF
     try {
-      generatePDF(finalData);
-      toast.success("Waiver submitted & PDF generated!", {
+      // 1. Generate PDF and get blob
+      const pdfBlob = generatePDF(finalData);
+
+      // 2. Upload PDF to Supabase Storage
+      const fileName = `waiver_${Date.now()}_${formData.fullName.replace(/\s+/g, '_')}.pdf`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('wavier')
+        .upload(fileName, pdfBlob, {
+          contentType: 'application/pdf',
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        throw new Error(`PDF Upload Failed: ${uploadError.message}`);
+      }
+
+      const pdfUrl = uploadData
+        ? supabase.storage.from('wavier').getPublicUrl(uploadData.path).data.publicUrl
+        : null;
+
+      // 3. Save to Supabase Database
+      const { error: supabaseError } = await supabase
+        .from('submissions')
+        .insert([{
+          full_name: formData.fullName,
+          email: formData.email,
+          mobile: formData.mobile,
+          dob: formData.dob ? format(formData.dob, 'yyyy-MM-dd') : null,
+          gender: formData.gender,
+          signature: signatureData,
+          agreed: formData.agreed,
+          submitted_at: finalData.submittedAt,
+          pdf_url: pdfUrl
+        }]);
+
+      if (supabaseError) throw supabaseError;
+
+      // Generate PDF and show preview
+      const blob = generatePDF(finalData);
+      setPdfBlob(blob);
+
+      const publicUrl = pdfUrl || URL.createObjectURL(blob);
+      setPdfPreviewUrl(publicUrl);
+
+      toast.success("Waiver saved successfully!", {
         style: {
           borderRadius: '16px',
           background: '#334155',
@@ -298,12 +385,14 @@ const RebounceForm = () => {
           fontSize: '14px',
         },
       });
-    } catch (error) {
-      console.error("PDF Error:", error);
-      toast.error("Waiver submitted, but PDF generation failed.");
-    }
 
-    setStep(4); // Success step
+      setStep(5); // Preview step
+    } catch (error) {
+      console.error("Submission Error:", error);
+      toast.error(error.message || "Failed to submit waiver.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const inputStyles = "w-full box-border text-left bg-white/40 border border-white/60 rounded-2xl px-4 py-3 outline-none focus:border-[#FF1493] focus:ring-2 focus:ring-[#FF1493]/20 transition-all text-slate-800 placeholder:text-slate-400 backdrop-blur-md shadow-inner text-base md:text-sm";
@@ -317,10 +406,10 @@ const RebounceForm = () => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="flex flex-col h-full"
+            className="w-full"
           >
-            <div className="flex-1">
-              <h2 className="text-3xl font-black text-slate-800 mb-2 text-center tracking-tight">
+            <div className="w-full">
+              <h2 className="text-3xl font-black text-slate-800 mb-2 text-center tracking-tight uppercase">
                 WELCOME TO <span className="text-[#FF1493]">REBOUNCE</span>
               </h2>
               <p className="text-center text-slate-500 font-medium mb-8">Ready to jump?</p>
@@ -352,13 +441,20 @@ const RebounceForm = () => {
             </div>
 
             <motion.button
-              whileHover={{ scale: 1.05, boxShadow: '0 10px 20px rgba(255,20,147,0.2)' }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={!loading ? { scale: 1.05, boxShadow: '0 10px 20px rgba(255,20,147,0.2)' } : {}}
+              whileTap={!loading ? { scale: 0.95 } : {}}
               onClick={handleNext}
-              disabled={formData.mobile.length < 10}
-              className="w-full mt-6 bg-[#FF1493] text-white font-black py-4 rounded-2xl shadow-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed uppercase tracking-widest"
+              disabled={formData.mobile.length < 10 || loading}
+              className="w-full mt-6 bg-[#FF1493] text-white font-black py-4 rounded-2xl shadow-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed uppercase tracking-widest flex items-center justify-center gap-2"
             >
-              Continue
+              {loading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Checking...</span>
+                </>
+              ) : (
+                "Continue"
+              )}
             </motion.button>
           </motion.div>
         );
@@ -369,9 +465,9 @@ const RebounceForm = () => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="flex flex-col h-full"
+            className="w-full"
           >
-            <div className="flex-1 overflow-y-auto scrollbar-hide pb-4">
+            <div className="w-full pb-4">
               <h2 className="text-2xl font-black text-slate-800 mb-6 text-center tracking-tight uppercase">
                 Your <span className="text-[#FF1493]">Details</span>
               </h2>
@@ -388,17 +484,20 @@ const RebounceForm = () => {
                   />
                 </div>
 
-                <div>
+                <div className="relative datepicker-container">
                   <label className={labelStyles}>Date Of Birth</label>
-                  <input
-                    type="date"
-                    value={formData.dob ? formData.dob.toISOString().split('T')[0] : ''}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setFormData({ ...formData, dob: val ? new Date(val) : null });
-                    }}
-                    max={new Date().toISOString().split('T')[0]}
-                    className={inputStyles}
+                  <DatePicker
+                    selected={formData.dob}
+                    onChange={(date) => setFormData({ ...formData, dob: date })}
+                    dateFormat="dd/MM/yyyy"
+                    maxDate={new Date()}
+                    showYearDropdown
+                    scrollableYearDropdown
+                    yearDropdownItemNumber={100}
+                    placeholderText="Select your birthday"
+                    className={`${inputStyles} w-full cursor-pointer`}
+                    wrapperClassName="w-full"
+                    popperPlacement="bottom-start"
                   />
                 </div>
 
@@ -474,7 +573,7 @@ const RebounceForm = () => {
             exit={{ opacity: 0, x: -20 }}
             className="flex flex-col h-full"
           >
-            <div className="flex-1 overflow-y-auto scrollbar-hide pb-4">
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide pb-6 px-1">
               <h2 className="text-xl font-bold text-slate-800 mb-2 text-center">
                 Please Review And Sign
               </h2>
@@ -501,20 +600,16 @@ const RebounceForm = () => {
                 </div>
               </div>
 
-              <div 
-                className="bg-white/20 border border-white/40 rounded-2xl p-4 h-48 overflow-y-auto text-[12px] text-slate-600 whitespace-pre-wrap mb-3 scrollbar-hide text-justify font-sans"
+              <div
+                className="bg-white/20 border border-white/40 rounded-2xl p-4 h-40 md:h-48 overflow-y-auto text-[11px] text-slate-600 whitespace-pre-wrap mb-4 scrollbar-hide text-justify font-sans"
                 dangerouslySetInnerHTML={{ __html: WAIVER_TEXT }}
               />
 
-              <div className="flex items-start space-x-2 mb-4 px-1">
-                <input
-                  type="checkbox"
-                  id="agreed"
-                  checked={formData.agreed}
-                  onChange={(e) => setFormData({ ...formData, agreed: e.target.checked })}
-                  className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#FF1493] focus:ring-[#FF1493]"
-                />
-                <label htmlFor="agreed" className="text-[10px] font-bold text-slate-700 leading-tight cursor-pointer">
+              <div className="flex items-center space-x-3 mb-6 px-1 group cursor-pointer" onClick={() => setFormData({ ...formData, agreed: !formData.agreed })}>
+                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.agreed ? 'bg-[#FF1493] border-[#FF1493]' : 'border-slate-300 bg-white'}`}>
+                  {formData.agreed && <Check size={16} className="text-white" strokeWidth={4} />}
+                </div>
+                <label htmlFor="agreed" className="text-[11px] font-bold text-slate-700 leading-tight cursor-pointer select-none">
                   I have read and agree to the Terms & Conditions and Waiver Agreement.
                 </label>
               </div>
@@ -537,7 +632,7 @@ const RebounceForm = () => {
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6 pt-2">
+            <div className="flex gap-3 pt-4 border-t border-white/40 bg-white/20 -mx-6 -mb-6 p-6 md:-mx-8 md:-mb-8 md:p-8 rounded-b-[2rem] md:rounded-b-[2.5rem]">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -547,13 +642,17 @@ const RebounceForm = () => {
                 Back
               </motion.button>
               <motion.button
-                whileHover={formData.agreed ? { scale: 1.05, boxShadow: '0 10px 25px rgba(255,20,147,0.3)' } : {}}
-                whileTap={formData.agreed ? { scale: 0.95 } : {}}
+                whileHover={formData.agreed && !loading ? { scale: 1.05, boxShadow: '0 10px 25px rgba(255,20,147,0.3)' } : {}}
+                whileTap={formData.agreed && !loading ? { scale: 0.95 } : {}}
                 onClick={handleSubmit}
-                disabled={!formData.agreed}
-                className="w-2/3 bg-[#FF1493] text-white font-black py-4 rounded-2xl shadow-lg transition-all uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed"
+                disabled={!formData.agreed || loading}
+                className="w-2/3 bg-[#FF1493] text-white font-black py-4 rounded-2xl shadow-lg transition-all uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                SUBMIT WAIVER
+                {loading ? (
+                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  "SUBMIT WAIVER"
+                )}
               </motion.button>
             </div>
           </motion.div>
@@ -597,6 +696,55 @@ const RebounceForm = () => {
             </p>
           </motion.div>
         );
+      case 5: // PDF Preview Step
+        return (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center h-full text-center py-2"
+          >
+            <h2 className="text-2xl font-black text-slate-800 mb-4 tracking-tight uppercase">
+              Preview <span className="text-[#FF1493]">Waiver</span>
+            </h2>
+
+            <div className="w-full h-[45vh] bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 shadow-inner mb-6 relative group">
+              {pdfPreviewUrl ? (
+                <div className="w-full h-full relative overflow-hidden bg-white">
+                  <iframe
+                    src={`https://docs.google.com/viewer?url=${encodeURIComponent(pdfPreviewUrl)}&embedded=true`}
+                    className="absolute inset-0 w-full h-full border-none"
+                    title="Waiver Preview"
+                  />
+                  {/* Overlay to catch clicks and prevent jumping out on mobile */}
+                  <div className="absolute inset-0 z-10 pointer-events-none" />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full text-slate-400 font-bold uppercase text-xs tracking-widest">
+                  Loading Preview...
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col w-full gap-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={downloadPDF}
+                className="w-full bg-[#FF1493] text-white font-black py-4 rounded-2xl shadow-lg transition-all uppercase tracking-widest flex items-center justify-center gap-2"
+              >
+                <Download size={20} />
+                Download PDF
+              </motion.button>
+
+              <button
+                onClick={() => setStep(4)}
+                className="w-full py-3 text-slate-400 font-bold uppercase text-xs tracking-[0.2em] hover:text-slate-600 transition-colors"
+              >
+                Skip & Finish
+              </button>
+            </div>
+          </motion.div>
+        );
       default:
         return null;
     }
@@ -604,7 +752,8 @@ const RebounceForm = () => {
 
   return (
     <div className="h-full w-full flex items-center justify-center p-4 relative overflow-hidden safe-area-padding">
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .safe-area-padding {
           padding-top: env(safe-area-inset-top);
           padding-bottom: env(safe-area-inset-bottom);
@@ -617,7 +766,7 @@ const RebounceForm = () => {
       <Toaster position="top-center" reverseOrder={false} />
 
       {/* Home Icon Button - Positioned at Screen Right Corner */}
-      <button 
+      <button
         onClick={() => navigate('/login')}
         className="fixed top-6 right-6 z-50 p-4 bg-white/40 hover:bg-white/60 backdrop-blur-lg rounded-2xl border border-white/60 text-[#FF1493] transition-all shadow-xl hover:scale-110 active:scale-95 group"
         title="Login"
@@ -627,15 +776,17 @@ const RebounceForm = () => {
 
       <div className="w-full max-w-md relative z-10 animate-bounce-in px-4 md:px-0 flex flex-col justify-center max-h-full py-4">
         {/* Main White Glass Card */}
-        <div className="glass-card w-full box-border rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 flex flex-col relative overflow-y-auto overflow-x-hidden max-h-[85vh] scrollbar-hide">
-          <AnimatePresence mode="wait">
-            {renderStep()}
-          </AnimatePresence>
+        <div className={`glass-card w-full box-border rounded-[2rem] md:rounded-[2.5rem] flex flex-col relative max-h-[85vh] scrollbar-hide ${step === 3 ? 'overflow-hidden h-[80vh]' : 'overflow-y-auto p-6 md:p-8'}`}>
+          <div className={`${step === 3 ? 'p-6 md:p-8 flex flex-col h-full' : ''}`}>
+            <AnimatePresence mode="wait">
+              {renderStep()}
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-8 text-center animate-bounce-in" style={{ animationDelay: '0.5s' }}>
-          <p className="text-slate-500 font-medium text-xs tracking-widest uppercase">
+        <div className="mt-4 md:mt-8 text-center animate-bounce-in opacity-50" style={{ animationDelay: '0.5s' }}>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">
             Powered by <span className="text-[#FF1493] font-black">Botivate</span>
           </p>
         </div>
