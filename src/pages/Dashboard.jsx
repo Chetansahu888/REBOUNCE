@@ -131,115 +131,93 @@ const Dashboard = () => {
       
       {/* Scrollable Content */}
       <main className="h-full pt-20 pb-24 px-4 md:px-8 max-w-7xl mx-auto w-full overflow-y-auto scrollbar-custom relative z-10">
-        <StatsGrid stats={stats} />
-        
-        <div className="mt-8 bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/60 shadow-2xl overflow-hidden">
-          <div className="p-6 md:p-8 border-b border-slate-100 bg-white/40 flex flex-col md:flex-row md:items-center gap-4 justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-lg">
-                <FileText size={20} />
+        <div className="py-6">
+          <StatsGrid stats={stats} />
+
+          <DashboardFilters 
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            isFilterOpen={isFilterOpen}
+            setIsFilterOpen={setIsFilterOpen}
+            onRefresh={fetchSubmissions}
+            filters={filters}
+            setFilters={setFilters}
+            uniqueValues={uniqueValues}
+          />
+          
+          <div className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/60 shadow-2xl overflow-hidden">
+            <div className="p-5 md:p-6 border-b border-slate-100 bg-white/40 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-lg">
+                <FileText size={18} />
               </div>
               <div>
-                <h3 className="font-black text-slate-800 text-lg uppercase tracking-tight leading-none">Waiver Submissions</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Total Records: {filteredSubmissions.length}</p>
+                <h3 className="font-black text-slate-800 text-base uppercase tracking-tight leading-none">Waiver Submissions</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Total Records: {filteredSubmissions.length}</p>
               </div>
             </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="relative flex-1 md:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                <input 
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search participants..."
-                  className="w-full bg-white/60 border border-slate-100 rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold outline-none focus:border-[#FF1493]/30 focus:ring-4 focus:ring-[#FF1493]/5 transition-all shadow-inner"
-                />
-              </div>
-              <button 
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className={`p-2.5 rounded-xl border transition-all ${isFilterOpen ? 'bg-[#FF1493] border-[#FF1493] text-white shadow-lg shadow-pink-200' : 'bg-white border-slate-100 text-slate-400 hover:text-[#FF1493]'}`}
-              >
-                <Filter size={18} />
-              </button>
-            </div>
-          </div>
-
-          <AnimatePresence>
-            {isFilterOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden bg-slate-50/50 border-b border-slate-100"
-              >
-                <DashboardFilters filters={filters} setFilters={setFilters} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="p-4 md:p-6">
             {/* Desktop Table View */}
-            <div className="hidden lg:block overflow-x-auto">
-              <table className="w-full border-separate border-spacing-y-3">
-                <thead>
-                  <tr className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    <th className="px-4 py-2 text-left">Participant</th>
-                    <th className="px-4 py-2 text-left">Mobile</th>
-                    <th className="px-4 py-2 text-left">Email</th>
-                    <th className="px-4 py-2 text-left">DOB / Gender</th>
-                    <th className="px-4 py-2 text-left">Date</th>
-                    <th className="px-4 py-2 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan="6" className="py-20 text-center">
-                        <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading records...</p>
-                      </td>
+            <div className="p-4 md:p-6">
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="w-full border-separate border-spacing-y-3">
+                  <thead>
+                    <tr className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                      <th className="px-4 py-2 text-left">Participant</th>
+                      <th className="px-4 py-2 text-left">Mobile</th>
+                      <th className="px-4 py-2 text-left">Email</th>
+                      <th className="px-4 py-2 text-left">DOB / Gender</th>
+                      <th className="px-4 py-2 text-left">Date</th>
+                      <th className="px-4 py-2 text-center">Actions</th>
                     </tr>
-                  ) : filteredSubmissions.length === 0 ? (
-                    <tr>
-                      <td colSpan="6" className="py-20 text-center text-slate-400 font-bold uppercase text-[10px] tracking-widest">
-                        No results found
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredSubmissions.map((item, idx) => (
-                      <SubmissionRow 
-                        key={item.id} 
-                        item={item} 
-                        idx={idx} 
-                        onDownload={downloadWaiver} 
-                      />
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      <tr>
+                        <td colSpan="6" className="py-20 text-center">
+                          <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading records...</p>
+                        </td>
+                      </tr>
+                    ) : filteredSubmissions.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="py-20 text-center text-slate-400 font-bold uppercase text-[10px] tracking-widest">
+                          No results found
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredSubmissions.map((item, idx) => (
+                        <SubmissionRow 
+                          key={item.id} 
+                          item={item} 
+                          idx={idx} 
+                          onDownload={downloadWaiver} 
+                        />
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
-            {/* Mobile Card View */}
-            <div className="lg:hidden space-y-4">
-              {loading ? (
-                 <div className="py-20 text-center">
-                   <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                 </div>
-              ) : filteredSubmissions.length === 0 ? (
-                 <div className="py-20 text-center text-slate-400 font-bold uppercase text-[10px] tracking-widest">
-                   No results found
-                 </div>
-              ) : (
-                filteredSubmissions.map((item, idx) => (
-                  <SubmissionCard 
-                    key={item.id} 
-                    item={item} 
-                    idx={idx} 
-                    onDownload={downloadWaiver} 
-                  />
-                ))
-              )}
+              {/* Mobile Card View */}
+              <div className="lg:hidden space-y-4">
+                {loading ? (
+                   <div className="py-20 text-center">
+                     <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                   </div>
+                ) : filteredSubmissions.length === 0 ? (
+                   <div className="py-20 text-center text-slate-400 font-bold uppercase text-[10px] tracking-widest">
+                     No results found
+                   </div>
+                ) : (
+                  filteredSubmissions.map((item, idx) => (
+                    <SubmissionCard 
+                      key={item.id} 
+                      item={item} 
+                      idx={idx} 
+                      onDownload={downloadWaiver} 
+                    />
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -71,14 +71,16 @@ const DashboardFilters = ({
                 </select>
               </div>
               <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Email Filter</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Gender Filter</p>
                 <select 
-                  value={filters.email}
-                  onChange={(e) => setFilters({...filters, email: e.target.value})}
+                  value={filters.gender}
+                  onChange={(e) => setFilters({...filters, gender: e.target.value})}
                   className="w-full bg-white/60 border border-white/80 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none"
                 >
-                  <option value="ALL">ALL EMAILS</option>
-                  {uniqueValues.emails.map(e => <option key={e} value={e}>{e}</option>)}
+                  <option value="ALL">ALL GENDERS</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
               <div className="flex items-end gap-2">
