@@ -319,9 +319,16 @@ const Settings = () => {
 
       {/* Fixed Footer */}
       <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/95 backdrop-blur-md border-t border-slate-100 py-5 px-4 flex justify-center items-center pb-[calc(env(safe-area-inset-bottom)+12px)] shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.05)]">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
-          Powered by <span className="text-[#FF1493]">Botivate</span>
-        </p>
+        <a 
+          href="https://botivate.in/" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="hover:opacity-80 transition-opacity"
+        >
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+            Powered by <span className="text-[#FF1493]">Botivate</span>
+          </p>
+        </a>
       </footer>
 
       <style jsx="true">{`
