@@ -1,26 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-const Silhouette = ({ color, delay, x }) => (
-  <motion.div
-    className="absolute bottom-[-10px] will-change-transform"
-    style={{ left: x, opacity: 0.4, transformOrigin: "bottom center" }}
-    animate={{ y: [0, -250, 0], scaleY: [1, 0.85, 1.1, 1] }}
-    transition={{
-      duration: 1.2,
-      repeat: Infinity,
-      delay: delay,
-      ease: "easeInOut"
-    }}
-  >
-    <svg width="90" height="140" viewBox="0 0 100 150" fill={color} className="drop-shadow-lg">
-      <circle cx="50" cy="20" r="15" />
-      <path d="M50 35 L50 80 L30 140 M50 80 L70 140 M20 50 L50 40 L80 50" stroke={color} strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <path d="M35 40 Q50 35 65 40 L60 80 L40 80 Z" />
-    </svg>
-  </motion.div>
-);
-
 const AntiGravityBackground = () => {
   const balls = [
     { size: 100, color: '#FFD700', initialX: '10%', initialY: '20%', duration: 25 }, // Yellow
@@ -31,20 +11,8 @@ const AntiGravityBackground = () => {
     { size: 70, color: '#00B0FF', initialX: '50%', initialY: '10%', duration: 27 },
   ];
 
-  const silhouetts = [
-    { color: '#FF0000', x: '10%', delay: 0 },
-    { color: '#00B0FF', x: '25%', delay: 0.4 },
-    { color: '#00FF00', x: '65%', delay: 0.2 },
-    { color: '#FF0000', x: '85%', delay: 0.6 },
-    { color: '#00FF00', x: '45%', delay: 0.8 },
-  ];
-
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10 bg-gradient-to-br from-[#87CEEB] to-[#E6E6FA]">
-      {/* Jumping Human Silhouettes */}
-      {silhouetts.map((s, i) => (
-        <Silhouette key={i} {...s} />
-      ))}
 
       {/* Floating Balls */}
       {balls.map((ball, index) => (
