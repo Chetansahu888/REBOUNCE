@@ -177,7 +177,7 @@ export const Step3 = ({ formData, setFormData, onBack, onSubmit, sigCanvas, load
     initial={{ opacity: 0, x: 20 }}
     animate={{ opacity: 1, x: 0 }}
     exit={{ opacity: 0, x: -20 }}
-    className="flex flex-col h-full"
+    className="flex flex-col h-full md:h-auto"
   >
     <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide pb-6 px-1">
       <h2 className="text-xl font-bold text-slate-800 mb-2 text-center">
@@ -189,25 +189,25 @@ export const Step3 = ({ formData, setFormData, onBack, onSubmit, sigCanvas, load
 
       <div className="bg-white/30 border border-white/60 p-4 rounded-2xl mb-4">
         <div className="grid grid-cols-2 gap-2 text-sm">
-          <div className="text-slate-500 font-bold uppercase text-[10px]">Participant:</div>
-          <div className="font-bold text-slate-800">{formData.fullName}</div>
+          <div className="text-slate-500 font-bold uppercase text-[10px] md:text-xs">Participant:</div>
+          <div className="font-bold text-slate-800 md:text-base">{formData.fullName}</div>
 
-          <div className="text-slate-500 font-bold uppercase text-[10px]">DOB:</div>
-          <div className="font-bold text-slate-800">
+          <div className="text-slate-500 font-bold uppercase text-[10px] md:text-xs">DOB:</div>
+          <div className="font-bold text-slate-800 md:text-base">
             {formData.dob ? format(formData.dob, 'dd/MM/yyyy') : ''}
             {formData.dob ? ` (Age ${calculateAge(formData.dob)})` : ''}
           </div>
 
-          <div className="text-slate-500 font-bold uppercase text-[10px]">Gender:</div>
-          <div className="font-bold text-slate-800">{formData.gender}</div>
+          <div className="text-slate-500 font-bold uppercase text-[10px] md:text-xs">Gender:</div>
+          <div className="font-bold text-slate-800 md:text-base">{formData.gender}</div>
 
-          <div className="text-slate-500 font-bold uppercase text-[10px]">Mobile:</div>
-          <div className="font-bold text-slate-800">+{formData.mobile}</div>
+          <div className="text-slate-500 font-bold uppercase text-[10px] md:text-xs">Mobile:</div>
+          <div className="font-bold text-slate-800 md:text-base">+{formData.mobile}</div>
         </div>
       </div>
 
       <div
-        className="bg-white/20 border border-white/40 rounded-2xl p-4 h-40 md:h-48 overflow-y-auto text-[11px] text-slate-600 whitespace-pre-wrap mb-4 scrollbar-hide text-justify font-sans"
+        className="bg-white/20 border border-white/40 rounded-2xl p-4 h-40 md:h-64 overflow-y-auto text-xs md:text-sm text-slate-600 whitespace-pre-wrap mb-4 scrollbar-hide text-justify font-sans leading-relaxed"
         dangerouslySetInnerHTML={{ __html: waiverText }}
       />
 
@@ -215,7 +215,7 @@ export const Step3 = ({ formData, setFormData, onBack, onSubmit, sigCanvas, load
         <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.agreed ? 'bg-[#FF1493] border-[#FF1493]' : 'border-slate-300 bg-white'}`}>
           {formData.agreed && <Check size={16} className="text-white" strokeWidth={4} />}
         </div>
-        <label htmlFor="agreed" className="text-[11px] font-bold text-slate-700 leading-tight cursor-pointer select-none">
+        <label htmlFor="agreed" className="text-xs md:text-sm font-bold text-slate-700 leading-tight cursor-pointer select-none">
           I have read and agree to the Terms & Conditions and Waiver Agreement.
         </label>
       </div>

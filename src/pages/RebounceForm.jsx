@@ -181,6 +181,36 @@ const RebounceForm = () => {
     return () => clearTimeout(timer);
   }, [step]);
 
+  // Handle high-precision responsive scaling for the Signature Canvas to prevent distortion/offset
+  useEffect(() => {
+    if (step === 3 && sigCanvas.current) {
+      const canvas = sigCanvas.current.getCanvas();
+      if (canvas) {
+        const resizeCanvas = () => {
+          const ratio = Math.max(window.devicePixelRatio || 1, 1);
+          const width = canvas.offsetWidth;
+          const height = canvas.offsetHeight;
+          if (width > 0 && height > 0) {
+            canvas.width = width * ratio;
+            canvas.height = height * ratio;
+            canvas.getContext("2d").scale(ratio, ratio);
+            sigCanvas.current.clear(); // initialize backing store with correct size
+          }
+        };
+
+        // Delay slightly to let the glass-card transition/render settle
+        const timer = setTimeout(resizeCanvas, 150);
+
+        window.addEventListener('resize', resizeCanvas);
+        return () => {
+          clearTimeout(timer);
+          window.removeEventListener('resize', resizeCanvas);
+        };
+      }
+    }
+  }, [step]);
+
+
   const generatePDF = (data) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -341,9 +371,9 @@ const RebounceForm = () => {
         <Home size={28} className="group-hover:rotate-12 transition-transform" />
       </button>
 
-      <div className="w-full max-w-md relative z-10 animate-bounce-in px-4 md:px-0 flex flex-col justify-center max-h-full py-4">
-        <div className={`glass-card w-full box-border rounded-[2rem] md:rounded-[2.5rem] flex flex-col relative max-h-[85vh] scrollbar-hide ${step === 3 ? 'overflow-hidden h-[80vh]' : 'overflow-y-auto p-6 md:p-8'}`}>
-          <div className={`${step === 3 ? 'p-6 md:p-8 flex flex-col h-full' : ''}`}>
+      <div className="w-full max-w-md md:max-w-2xl relative z-10 animate-bounce-in px-4 md:px-0 flex flex-col justify-center max-h-full py-4">
+        <div className={`glass-card w-full box-border rounded-[2rem] md:rounded-[2.5rem] flex flex-col relative max-h-[85vh] scrollbar-hide ${step === 3 ? 'overflow-hidden h-[80vh] md:h-auto' : 'overflow-y-auto p-6 md:p-8'}`}>
+          <div className={`${step === 3 ? 'p-6 md:p-8 flex flex-col h-full md:h-auto' : ''}`}>
             <AnimatePresence mode="wait">
               {renderStep()}
             </AnimatePresence>
