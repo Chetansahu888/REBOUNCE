@@ -1,23 +1,31 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabase';
 import AntiGravityBackground from '../components/AntiGravityBackground';
 import toast from 'react-hot-toast';
-import { isToday } from 'date-fns';
-import { FileText, Search, Filter } from 'lucide-react';
+import { startOfDay, endOfDay } from 'date-fns';
+import { FileText, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import DashboardNavbar from '../components/DashboardNavbar';
 import StatsGrid from '../components/StatsGrid';
 import DashboardFilters from '../components/DashboardFilters';
 import { SubmissionRow, SubmissionCard } from '../components/SubmissionItems';
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
 const Dashboard = () => {
   const [submissions, setSubmissions] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [user, setUser] = useState(null);
-  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+  const [stats, setStats] = useState({ total: 0, today: 0, male: 0, female: 0 });
+  const [uniqueValues, setUniqueValues] = useState({ names: [], mobiles: [], emails: [] });
+
   const [filters, setFilters] = useState({
     name: 'ALL',
     mobile: 'ALL',
@@ -35,20 +43,55 @@ const Dashboard = () => {
       return;
     }
     setUser(JSON.parse(loggedUser));
-    fetchSubmissions();
+    fetchStats();
+    fetchFilterOptions();
   }, [navigate]);
+
+  // Debounce the search box so every keystroke doesn't hit the database
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchTerm(searchInput), 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Any change to filters/search/page size should jump back to page 1
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, searchTerm, itemsPerPage]);
+
+  useEffect(() => {
+    fetchSubmissions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, searchTerm, currentPage, itemsPerPage]);
+
+  const buildFilteredQuery = (query) => {
+    if (filters.name !== 'ALL') query = query.eq('full_name', filters.name);
+    if (filters.mobile !== 'ALL') query = query.eq('mobile', filters.mobile);
+    if (filters.email !== 'ALL') query = query.eq('email', filters.email);
+    if (filters.gender !== 'ALL') query = query.eq('gender', filters.gender);
+
+    const term = searchTerm.trim().replace(/[,()%]/g, '');
+    if (term) {
+      query = query.or(`full_name.ilike.%${term}%,mobile.ilike.%${term}%,email.ilike.%${term}%`);
+    }
+
+    return query;
+  };
 
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('submissions')
-        .select('*')
-        .or('is_admin.is.null,is_admin.eq.false')
-        .order('submitted_at', { ascending: false });
+      const from = (currentPage - 1) * itemsPerPage;
+      const to = from + itemsPerPage - 1;
+
+      let query = supabase.from('submissions').select('*', { count: 'exact' });
+      query = buildFilteredQuery(query);
+      query = query.order('submitted_at', { ascending: filters.dateSort === 'oldest' }).range(from, to);
+
+      const { data, error, count } = await query;
 
       if (error) throw error;
       setSubmissions(data || []);
+      setTotalCount(count || 0);
     } catch (error) {
       console.error('Fetch error:', error);
       toast.error('Failed to load submissions');
@@ -57,41 +100,56 @@ const Dashboard = () => {
     }
   };
 
-  const stats = useMemo(() => {
-    const total = submissions.length;
-    const today = submissions.filter(s => isToday(new Date(s.submitted_at))).length;
-    const male = submissions.filter(s => s.gender === 'Male').length;
-    const female = submissions.filter(s => s.gender === 'Female').length;
-    
-    return { total, today, male, female };
-  }, [submissions]);
+  const fetchStats = async () => {
+    try {
+      const todayStart = startOfDay(new Date()).toISOString();
+      const todayEnd = endOfDay(new Date()).toISOString();
 
-  const uniqueValues = useMemo(() => ({
-    names: [...new Set(submissions.map(s => s.full_name))].sort(),
-    mobiles: [...new Set(submissions.map(s => s.mobile))].sort(),
-    emails: [...new Set(submissions.map(s => s.email).filter(Boolean))].sort()
-  }), [submissions]);
+      const [totalRes, todayRes, maleRes, femaleRes] = await Promise.all([
+        supabase.from('submissions').select('id', { count: 'exact', head: true }),
+        supabase.from('submissions').select('id', { count: 'exact', head: true })
+          .gte('submitted_at', todayStart).lte('submitted_at', todayEnd),
+        supabase.from('submissions').select('id', { count: 'exact', head: true }).eq('gender', 'Male'),
+        supabase.from('submissions').select('id', { count: 'exact', head: true }).eq('gender', 'Female'),
+      ]);
 
-  const filteredSubmissions = useMemo(() => {
-    return submissions
-      .filter(s => {
-        const matchesName = filters.name === 'ALL' || s.full_name === filters.name;
-        const matchesMobile = filters.mobile === 'ALL' || s.mobile === filters.mobile;
-        const matchesEmail = filters.email === 'ALL' || s.email === filters.email;
-        const matchesGender = filters.gender === 'ALL' || s.gender === filters.gender;
-        const matchesSearch = !searchTerm || 
-          s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          s.mobile.includes(searchTerm) ||
-          (s.email && s.email.toLowerCase().includes(searchTerm.toLowerCase()));
-        
-        return matchesName && matchesMobile && matchesEmail && matchesGender && matchesSearch;
-      })
-      .sort((a, b) => {
-        const dateA = new Date(a.submitted_at);
-        const dateB = new Date(b.submitted_at);
-        return filters.dateSort === 'newest' ? dateB - dateA : dateA - dateB;
+      setStats({
+        total: totalRes.count || 0,
+        today: todayRes.count || 0,
+        male: maleRes.count || 0,
+        female: femaleRes.count || 0,
       });
-  }, [submissions, filters, searchTerm]);
+    } catch (error) {
+      console.error('Stats fetch error:', error);
+    }
+  };
+
+  const fetchFilterOptions = async () => {
+    try {
+      const { data, error } = await supabase.from('submissions').select('full_name, mobile, email');
+      if (error) throw error;
+
+      setUniqueValues({
+        names: [...new Set((data || []).map(s => s.full_name))].sort(),
+        mobiles: [...new Set((data || []).map(s => s.mobile))].sort(),
+        emails: [...new Set((data || []).map(s => s.email).filter(Boolean))].sort()
+      });
+    } catch (error) {
+      console.error('Filter options fetch error:', error);
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchSubmissions();
+    fetchStats();
+    fetchFilterOptions();
+  };
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
+
+  const goToPage = (page) => {
+    setCurrentPage(Math.min(Math.max(page, 1), totalPages));
+  };
 
   const handleLogout = () => {
     sessionStorage.removeItem('user');
@@ -117,117 +175,164 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="h-screen h-[100dvh] w-full relative bg-[#F8FAFC] font-montserrat overflow-hidden">
+    <div className="h-screen h-[100dvh] w-full relative bg-[#F8FAFC] font-montserrat overflow-hidden flex flex-col">
       <AntiGravityBackground />
-      
-      {/* Fixed Header */}
-      <div className="fixed top-0 left-0 w-full z-50">
-        <DashboardNavbar 
-          user={user} 
-          onLogout={handleLogout} 
-          onSettings={() => navigate('/settings')} 
+
+      {/* Header */}
+      <div className="shrink-0 w-full z-50 relative">
+        <DashboardNavbar
+          user={user}
+          onLogout={handleLogout}
+          onSettings={() => navigate('/settings')}
         />
       </div>
-      
-      {/* Scrollable Content */}
-      <main className="h-full pt-20 pb-24 px-4 md:px-8 max-w-7xl mx-auto w-full overflow-y-auto scrollbar-custom relative z-10">
-        <div className="py-6">
-          <StatsGrid stats={stats} />
 
-          <DashboardFilters 
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            isFilterOpen={isFilterOpen}
-            setIsFilterOpen={setIsFilterOpen}
-            onRefresh={fetchSubmissions}
-            filters={filters}
-            setFilters={setFilters}
-            uniqueValues={uniqueValues}
-          />
-          
-          <div className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/60 shadow-2xl overflow-hidden">
-            <div className="p-5 md:p-6 border-b border-slate-100 bg-white/40 flex items-center gap-3">
+      {/* Content — scrollable main area */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden relative z-10 scrollbar-custom">
+        <div className="flex flex-col px-4 md:px-8 max-w-7xl mx-auto w-full py-6 min-h-full space-y-6">
+          <div>
+            <StatsGrid stats={stats} />
+          </div>
+
+          <div className="sticky top-0 z-30 pt-2 pb-4 bg-[#F8FAFC] -mt-2">
+            <DashboardFilters
+              searchTerm={searchInput}
+              setSearchTerm={setSearchInput}
+              isFilterOpen={isFilterOpen}
+              setIsFilterOpen={setIsFilterOpen}
+              onRefresh={handleRefresh}
+              filters={filters}
+              setFilters={setFilters}
+              uniqueValues={uniqueValues}
+            />
+          </div>
+
+          <div className="flex flex-col bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/60 shadow-2xl overflow-hidden sticky top-[90px] h-[calc(100dvh-250px)]">
+            <div className="shrink-0 p-5 md:p-6 border-b border-slate-100 bg-white/40 flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-lg">
                 <FileText size={18} />
               </div>
               <div>
                 <h3 className="font-black text-slate-800 text-base uppercase tracking-tight leading-none">Waiver Submissions</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Total Records: {filteredSubmissions.length}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Total Records: {totalCount}</p>
               </div>
             </div>
-            {/* Desktop Table View */}
-            <div className="p-4 md:p-6">
-              <div className="hidden lg:block overflow-x-auto">
-                <table className="w-full border-separate border-spacing-y-3">
-                  <thead>
-                    <tr className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                      <th className="px-4 py-2 text-left">Participant</th>
-                      <th className="px-4 py-2 text-left">Mobile</th>
-                      <th className="px-4 py-2 text-left">Email</th>
-                      <th className="px-4 py-2 text-left">DOB / Gender</th>
-                      <th className="px-4 py-2 text-left">Date</th>
-                      <th className="px-4 py-2 text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      <tr>
-                        <td colSpan="6" className="py-20 text-center">
-                          <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading records...</p>
-                        </td>
-                      </tr>
-                    ) : filteredSubmissions.length === 0 ? (
-                      <tr>
-                        <td colSpan="6" className="py-20 text-center text-slate-400 font-bold uppercase text-[10px] tracking-widest">
-                          No results found
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredSubmissions.map((item, idx) => (
-                        <SubmissionRow 
-                          key={item.id} 
-                          item={item} 
-                          idx={idx} 
-                          onDownload={downloadWaiver} 
-                        />
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
 
-              {/* Mobile Card View */}
-              <div className="lg:hidden space-y-4">
-                {loading ? (
-                   <div className="py-20 text-center">
-                     <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                   </div>
-                ) : filteredSubmissions.length === 0 ? (
-                   <div className="py-20 text-center text-slate-400 font-bold uppercase text-[10px] tracking-widest">
-                     No results found
-                   </div>
-                ) : (
-                  filteredSubmissions.map((item, idx) => (
-                    <SubmissionCard 
-                      key={item.id} 
-                      item={item} 
-                      idx={idx} 
-                      onDownload={downloadWaiver} 
-                    />
-                  ))
-                )}
-              </div>
+            {/* Desktop Table View */}
+            <div className="hidden lg:block flex-1 min-h-0 overflow-auto px-4 md:px-6 scrollbar-custom">
+              <table className="w-full border-collapse">
+                <thead className="sticky top-0 z-10">
+                  <tr className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] bg-[#F8FAFC] border-b border-slate-200">
+                    <th className="px-4 py-3 text-left">Participant</th>
+                    <th className="px-4 py-3 text-left">Mobile</th>
+                    <th className="px-4 py-3 text-left">Email</th>
+                    <th className="px-4 py-3 text-left">Gender</th>
+                    <th className="px-4 py-3 text-left">DOB</th>
+                    <th className="px-4 py-3 text-left">Date</th>
+                    <th className="px-4 py-3 text-center">Sign</th>
+                    <th className="px-4 py-3 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {loading ? (
+                    <tr>
+                      <td colSpan="8" className="py-20 text-center">
+                        <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading records...</p>
+                      </td>
+                    </tr>
+                  ) : submissions.length === 0 ? (
+                    <tr>
+                      <td colSpan="8" className="py-20 text-center text-slate-400 font-bold uppercase text-[10px] tracking-widest">
+                        No results found
+                      </td>
+                    </tr>
+                  ) : (
+                    submissions.map((item, idx) => (
+                      <SubmissionRow
+                        key={item.id}
+                        item={item}
+                        idx={idx}
+                        onDownload={downloadWaiver}
+                      />
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
+
+            {/* Mobile Card View */}
+            <div className="lg:hidden flex-1 min-h-0 overflow-y-auto px-4 md:px-6 space-y-4 scrollbar-custom">
+              {loading ? (
+                 <div className="py-20 text-center">
+                   <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                 </div>
+              ) : submissions.length === 0 ? (
+                 <div className="py-20 text-center text-slate-400 font-bold uppercase text-[10px] tracking-widest">
+                   No results found
+                 </div>
+              ) : (
+                submissions.map((item, idx) => (
+                  <SubmissionCard
+                    key={item.id}
+                    item={item}
+                    idx={idx}
+                    onDownload={downloadWaiver}
+                  />
+                ))
+              )}
+            </div>
+
+            {/* Pagination */}
+            {!loading && totalCount > 0 && (
+              <div className="shrink-0 flex items-center justify-between gap-4 px-4 md:px-6 py-4 border-t border-slate-100">
+                <div className="flex items-center gap-3">
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                    className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-[11px] font-black text-slate-600 outline-none focus:border-[#FF1493] transition-all"
+                  >
+                    {PAGE_SIZE_OPTIONS.map((size) => (
+                      <option key={size} value={size}>{size}</option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    {(currentPage - 1) * itemsPerPage + 1}
+                    {'–'}
+                    {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:border-[#FF1493] hover:text-[#FF1493] transition-all disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:text-slate-500 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <p className="text-[11px] font-black text-slate-600 min-w-[3rem] text-center">
+                    {currentPage}/{totalPages}
+                  </p>
+                  <button
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:border-[#FF1493] hover:text-[#FF1493] transition-all disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:text-slate-500 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>
 
-      {/* Fixed Footer Section */}
-      <footer className="fixed bottom-0 left-0 w-full z-50 bg-white/95 backdrop-blur-md border-t border-slate-100 py-5 px-4 flex justify-center items-center pb-[calc(env(safe-area-inset-bottom)+12px)] shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.05)]">
-        <a 
-          href="https://botivate.in/" 
-          target="_blank" 
+      {/* Footer Section */}
+      <footer className="shrink-0 w-full z-50 relative bg-white/95 backdrop-blur-md border-t border-slate-100 py-5 px-4 flex justify-center items-center pb-[calc(env(safe-area-inset-bottom)+12px)] shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.05)]">
+        <a
+          href="https://botivate.in/"
+          target="_blank"
           rel="noopener noreferrer"
           className="hover:opacity-80 transition-opacity"
         >
@@ -239,25 +344,33 @@ const Dashboard = () => {
 
       <style jsx="true">{`
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
-        
+
         .font-montserrat {
           font-family: 'Montserrat', sans-serif;
         }
 
         /* Custom Scrollbar */
+        .scrollbar-custom {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255, 20, 147, 0.45) rgba(148, 163, 184, 0.12);
+        }
         .scrollbar-custom::-webkit-scrollbar {
-          width: 6px;
-          height: 6px;
+          width: 10px;
+          height: 10px;
         }
         .scrollbar-custom::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .scrollbar-custom::-webkit-scrollbar-thumb {
-          background: rgba(255, 20, 147, 0.1);
+          background: rgba(148, 163, 184, 0.12);
           border-radius: 10px;
         }
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+          background: rgba(255, 20, 147, 0.45);
+          border-radius: 10px;
+          border: 2px solid transparent;
+          background-clip: padding-box;
+        }
         .scrollbar-custom::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 20, 147, 0.2);
+          background: rgba(255, 20, 147, 0.7);
+          background-clip: padding-box;
         }
       `}</style>
     </div>

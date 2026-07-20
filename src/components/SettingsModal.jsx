@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, UserPlus, Shield, User, Trash2, Key, Save } from 'lucide-react';
+import { X, UserPlus, Shield, User, Trash2, Key, Save, Eye, EyeClosed } from 'lucide-react';
 import { supabase } from '../supabase';
 import toast from 'react-hot-toast';
 
@@ -8,6 +8,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState('create'); // 'create' or 'manage'
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState([]);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     userName: '',
@@ -24,10 +25,9 @@ const SettingsModal = ({ isOpen, onClose }) => {
   const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
-        .from('submissions')
-        .select('id, full_name, user_name, is_admin, submitted_at')
-        .not('user_name', 'is', null)
-        .order('submitted_at', { ascending: false });
+        .from('users')
+        .select('id, full_name, user_name, is_admin, created_at')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setUsers(data || []);
@@ -46,14 +46,12 @@ const SettingsModal = ({ isOpen, onClose }) => {
     setLoading(true);
     try {
       const { error } = await supabase
-        .from('submissions')
+        .from('users')
         .insert([{
           full_name: formData.fullName,
           user_name: formData.userName,
           password: formData.password,
-          is_admin: formData.isAdmin,
-          mobile: '0000000000', // Default mobile for admin accounts
-          submitted_at: new Date().toISOString()
+          is_admin: formData.isAdmin
         }]);
 
       if (error) {
@@ -77,7 +75,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
     
     try {
       const { error } = await supabase
-        .from('submissions')
+        .from('users')
         .delete()
         .eq('id', id);
 
@@ -167,13 +165,21 @@ const SettingsModal = ({ isOpen, onClose }) => {
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Password</label>
                     <div className="relative">
                       <Save className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                      <input 
-                        type="password"
+                      <input
+                        type={showPassword ? 'text' : 'password'}
                         value={formData.password}
                         onChange={(e) => setFormData({...formData, password: e.target.value})}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-12 py-3.5 outline-none focus:border-[#FF1493] focus:ring-4 focus:ring-[#FF1493]/10 transition-all font-bold text-slate-700"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-12 pr-12 py-3.5 outline-none focus:border-[#FF1493] focus:ring-4 focus:ring-[#FF1493]/10 transition-all font-bold text-slate-700"
                         placeholder="••••••••"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <EyeClosed size={18} /> : <Eye size={18} />}
+                      </button>
                     </div>
                   </div>
 

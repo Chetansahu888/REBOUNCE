@@ -5,15 +5,15 @@ import { format } from 'date-fns';
 
 export const SubmissionRow = ({ item, idx, onDownload }) => {
   return (
-    <motion.tr 
+    <motion.tr
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: idx * 0.02 }}
       className="group hover:bg-white/60 transition-colors"
     >
-      <td className="px-8 py-5">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white font-black text-lg shadow-sm">
+      <td className="px-4 py-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white font-black text-sm shadow-sm">
             {item.full_name?.charAt(0)}
           </div>
           <div>
@@ -21,59 +21,59 @@ export const SubmissionRow = ({ item, idx, onDownload }) => {
           </div>
         </div>
       </td>
-      <td className="px-6 py-5">
+      <td className="px-4 py-4">
         <div className="flex items-center gap-2 text-slate-700">
           <Phone size={12} className="text-blue-500" />
           <span className="text-[11px] font-bold">{item.mobile}</span>
         </div>
       </td>
-      <td className="px-6 py-5">
+      <td className="px-4 py-4">
         <div className="flex items-center gap-2 text-slate-500">
           <Mail size={12} className="text-pink-500" />
           <span className="text-[11px] font-medium truncate max-w-[150px]">{item.email || 'No Email'}</span>
         </div>
       </td>
-      <td className="px-6 py-5">
+      <td className="px-4 py-4">
         <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.1em] ${
-          item.gender === 'Male' ? 'bg-blue-100 text-blue-600' : 
-          item.gender === 'Female' ? 'bg-pink-100 text-pink-600' : 
+          item.gender === 'Male' ? 'bg-blue-100 text-blue-600' :
+          item.gender === 'Female' ? 'bg-pink-100 text-pink-600' :
           'bg-slate-100 text-slate-500'
         }`}>
           {item.gender || 'N/A'}
         </span>
       </td>
-      <td className="px-6 py-5">
+      <td className="px-4 py-4">
         <div className="flex items-center gap-2 text-slate-600 font-bold text-[11px]">
           <Calendar size={12} className="text-slate-400" />
           {item.dob ? format(new Date(item.dob), 'MMM d, yyyy') : 'N/A'}
         </div>
       </td>
-      <td className="px-6 py-5">
+      <td className="px-4 py-4">
         <p className="text-[11px] font-black text-slate-800">{format(new Date(item.submitted_at), 'dd/MM/yyyy')}</p>
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">{format(new Date(item.submitted_at), 'HH:mm a')}</p>
       </td>
-      <td className="px-8 py-5 text-right">
-        <div className="flex items-center justify-end gap-4 transition-opacity">
-          {item.signature && (
-            <div className="flex flex-col items-center">
-              <img 
-                src={item.signature} 
-                alt="Signature" 
-                className="h-10 w-20 object-contain bg-slate-50 rounded-lg p-1 border border-slate-100"
-              />
-              <span className="text-[7px] font-black text-slate-400 uppercase tracking-tighter mt-1">Verified Sign</span>
-            </div>
-          )}
-          {item.pdf_url && (
-            <button 
-              onClick={() => onDownload(item.pdf_url, item.full_name)}
-              className="p-2.5 bg-white border border-slate-200 text-pink-500 rounded-xl hover:bg-pink-500 hover:text-white hover:border-pink-500 transition-all shadow-sm"
-              title="Download PDF"
-            >
-              <Download size={16} />
-            </button>
-          )}
-        </div>
+      <td className="px-4 py-4 text-center">
+        {item.signature && (
+          <div className="flex flex-col items-center">
+            <img
+              src={item.signature}
+              alt="Signature"
+              className="h-10 w-20 object-contain bg-slate-50 rounded-lg p-1 border border-slate-100"
+            />
+            <span className="text-[7px] font-black text-slate-400 uppercase tracking-tighter mt-1">Verified Sign</span>
+          </div>
+        )}
+      </td>
+      <td className="px-4 py-4 text-center">
+        {item.pdf_url && (
+          <button
+            onClick={() => onDownload(item.pdf_url, item.full_name)}
+            className="p-2.5 bg-white border border-slate-200 text-pink-500 rounded-xl hover:bg-pink-500 hover:text-white hover:border-pink-500 transition-all shadow-sm"
+            title="Download PDF"
+          >
+            <Download size={16} />
+          </button>
+        )}
       </td>
     </motion.tr>
   );

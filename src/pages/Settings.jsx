@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, UserPlus, Shield, User, 
-  Trash2, Key, Save, Search, Filter 
+import {
+  ArrowLeft, UserPlus, Shield, User,
+  Trash2, Key, Save, Search, Filter, Eye, EyeClosed
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import toast from 'react-hot-toast';
@@ -17,6 +17,7 @@ const Settings = () => {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -40,10 +41,9 @@ const Settings = () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('submissions')
+        .from('users')
         .select('*')
-        .not('user_name', 'is', null)
-        .order('submitted_at', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setUsers(data || []);
@@ -64,14 +64,12 @@ const Settings = () => {
     setLoading(true);
     try {
       const { error } = await supabase
-        .from('submissions')
+        .from('users')
         .insert([{
           full_name: formData.fullName,
           user_name: formData.userName,
           password: formData.password,
-          is_admin: formData.isAdmin,
-          mobile: '0000000000',
-          submitted_at: new Date().toISOString()
+          is_admin: formData.isAdmin
         }]);
 
       if (error) {
@@ -95,7 +93,7 @@ const Settings = () => {
     
     try {
       const { error } = await supabase
-        .from('submissions')
+        .from('users')
         .delete()
         .eq('id', id);
 
@@ -210,7 +208,7 @@ const Settings = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <p className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter mr-2 hidden md:block">
-                            Joined {new Date(u.submitted_at).toLocaleDateString()}
+                            Joined {new Date(u.created_at).toLocaleDateString()}
                           </p>
                           <button 
                             onClick={() => deleteUser(u.id)}
@@ -273,13 +271,21 @@ const Settings = () => {
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Password</label>
                   <div className="relative">
                     <Save className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                    <input 
-                      type="password"
+                    <input
+                      type={showPassword ? 'text' : 'password'}
                       value={formData.password}
                       onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      className="w-full bg-white border border-slate-100 rounded-xl px-11 py-3 text-[11px] font-bold outline-none focus:border-[#FF1493] focus:ring-4 focus:ring-[#FF1493]/5 transition-all text-slate-700"
+                      className="w-full bg-white border border-slate-100 rounded-xl px-11 pr-11 py-3 text-[11px] font-bold outline-none focus:border-[#FF1493] focus:ring-4 focus:ring-[#FF1493]/5 transition-all text-slate-700"
                       placeholder="••••••••"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeClosed size={16} /> : <Eye size={16} />}
+                    </button>
                   </div>
                 </div>
 

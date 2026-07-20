@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { User, Lock, LogIn, ArrowLeft } from 'lucide-react';
+import { User, Lock, LogIn, ArrowLeft, Eye, EyeClosed } from 'lucide-react';
 import AntiGravityBackground from '../components/AntiGravityBackground';
 import { supabase } from '../supabase';
 import toast from 'react-hot-toast';
@@ -10,6 +10,7 @@ import BotivateFooter from '../components/BotivateFooter';
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -23,7 +24,7 @@ const Login = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('submissions')
+        .from('users')
         .select('*')
         .eq('user_name', username)
         .eq('password', password)
@@ -88,12 +89,20 @@ const Login = () => {
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00B0FF]" size={18} />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={inputStyles}
+                  className={`${inputStyles} pr-12`}
                   placeholder="••••••••"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeClosed size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 
