@@ -439,28 +439,13 @@ const Dashboard = () => {
           font-family: 'Montserrat', sans-serif;
         }
 
-        /* Custom Scrollbar */
+        /* Hide Scrollbar */
         .scrollbar-custom {
-          scrollbar-width: thin;
-          scrollbar-color: rgba(255, 20, 147, 0.45) rgba(148, 163, 184, 0.12);
+          scrollbar-width: none; /* Firefox */
+          -ms-overflow-style: none; /* IE and Edge */
         }
         .scrollbar-custom::-webkit-scrollbar {
-          width: 10px;
-          height: 10px;
-        }
-        .scrollbar-custom::-webkit-scrollbar-track {
-          background: rgba(148, 163, 184, 0.12);
-          border-radius: 10px;
-        }
-        .scrollbar-custom::-webkit-scrollbar-thumb {
-          background: rgba(255, 20, 147, 0.45);
-          border-radius: 10px;
-          border: 2px solid transparent;
-          background-clip: padding-box;
-        }
-        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 20, 147, 0.7);
-          background-clip: padding-box;
+          display: none; /* Chrome, Safari and Opera */
         }
       `}</style>
     </div>
