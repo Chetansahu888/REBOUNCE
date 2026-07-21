@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabase';
 import AntiGravityBackground from '../components/AntiGravityBackground';
 import toast from 'react-hot-toast';
-import { startOfDay, endOfDay } from 'date-fns';
-import { FileText, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { startOfDay, endOfDay, format } from 'date-fns';
+import { FileText, Search, Filter, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import DashboardNavbar from '../components/DashboardNavbar';
 import StatsGrid from '../components/StatsGrid';
 import DashboardFilters from '../components/DashboardFilters';
@@ -19,6 +20,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -145,6 +147,68 @@ const Dashboard = () => {
     fetchFilterOptions();
   };
 
+  const exportToExcel = async () => {
+    try {
+      setIsExporting(true);
+      toast.loading('Preparing Excel file...', { id: 'export-toast' });
+      
+      let allData = [];
+      let page = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        let query = supabase.from('submissions').select('*');
+        query = buildFilteredQuery(query);
+        query = query.order('submitted_at', { ascending: filters.dateSort === 'oldest' })
+                     .range(page * pageSize, (page + 1) * pageSize - 1);
+        
+        const { data, error } = await query;
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          allData = [...allData, ...data];
+          if (data.length < pageSize) {
+            hasMore = false;
+          } else {
+            page++;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      if (allData.length === 0) {
+         toast.error('No data to export', { id: 'export-toast' });
+         return;
+      }
+      
+      // Format data for Excel
+      const exportData = allData.map(item => ({
+        'Full Name': item.full_name || '',
+        'Mobile': item.mobile || '',
+        'Email': item.email || '',
+        'Gender': item.gender || '',
+        'DOB': item.dob ? format(new Date(item.dob), 'dd/MM/yyyy') : '',
+        'Date Submitted': item.submitted_at ? format(new Date(item.submitted_at), 'dd/MM/yyyy HH:mm:ss') : '',
+        'Has Signature': item.signature ? 'Yes' : 'No'
+      }));
+      
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Submissions');
+      
+      XLSX.writeFile(workbook, `Waiver_Submissions_${format(new Date(), 'dd_MM_yyyy')}.xlsx`);
+      toast.success('Exported successfully!', { id: 'export-toast' });
+      
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export data', { id: 'export-toast' });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
 
   const goToPage = (page) => {
@@ -208,14 +272,28 @@ const Dashboard = () => {
           </div>
 
           <div className="flex flex-col bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/60 shadow-2xl overflow-hidden sticky top-[90px] h-[calc(100dvh-250px)]">
-            <div className="shrink-0 p-5 md:p-6 border-b border-slate-100 bg-white/40 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-lg">
-                <FileText size={18} />
+            <div className="shrink-0 p-5 md:p-6 border-b border-slate-100 bg-white/40 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-lg">
+                  <FileText size={18} />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-800 text-base uppercase tracking-tight leading-none">Waiver Submissions</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Total Records: {totalCount}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-black text-slate-800 text-base uppercase tracking-tight leading-none">Waiver Submissions</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Total Records: {totalCount}</p>
-              </div>
+              <button
+                onClick={exportToExcel}
+                disabled={isExporting || totalCount === 0}
+                className="flex items-center gap-2 bg-green-500/10 text-green-600 border border-green-500/20 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-green-500 hover:text-white transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isExporting ? (
+                  <div className="w-3.5 h-3.5 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <Download size={14} />
+                )}
+                <span className="hidden sm:inline">Export Excel</span>
+              </button>
             </div>
 
             {/* Desktop Table View */}
