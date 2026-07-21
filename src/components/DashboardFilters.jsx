@@ -74,7 +74,13 @@ const DashboardFilters = ({
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Gender Filter</p>
                 <select 
                   value={filters.gender}
-                  onChange={(e) => setFilters({...filters, gender: e.target.value})}
+                  onChange={(e) => setFilters({
+                    ...filters, 
+                    gender: e.target.value,
+                    name: 'ALL',
+                    mobile: 'ALL',
+                    email: 'ALL'
+                  })}
                   className="w-full bg-white/60 border border-white/80 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none"
                 >
                   <option value="ALL">ALL GENDERS</option>

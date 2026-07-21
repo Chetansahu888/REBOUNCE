@@ -46,8 +46,13 @@ const Dashboard = () => {
     }
     setUser(JSON.parse(loggedUser));
     fetchStats();
-    fetchFilterOptions();
   }, [navigate]);
+
+  // Re-fetch filter dropdown options whenever the gender filter changes
+  useEffect(() => {
+    fetchFilterOptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.gender]);
 
   // Debounce the search box so every keystroke doesn't hit the database
   useEffect(() => {
@@ -128,7 +133,14 @@ const Dashboard = () => {
 
   const fetchFilterOptions = async () => {
     try {
-      const { data, error } = await supabase.from('submissions').select('full_name, mobile, email');
+      let query = supabase.from('submissions').select('full_name, mobile, email');
+      
+      // If a gender is selected, only fetch names/mobiles/emails for that gender
+      if (filters.gender !== 'ALL') {
+        query = query.eq('gender', filters.gender);
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
 
       setUniqueValues({
