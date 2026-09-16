@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Phone, Mail, Calendar, Download, MoreVertical } from 'lucide-react';
+import { Phone, Mail, Calendar, Download, Eye, MoreVertical } from 'lucide-react';
 import { format } from 'date-fns';
 
-export const SubmissionRow = ({ item, idx, onDownload }) => {
+export const SubmissionRow = ({ item, idx, onDownload, onPreview }) => {
   return (
     <motion.tr
       initial={{ opacity: 0, y: 10 }}
@@ -66,20 +66,29 @@ export const SubmissionRow = ({ item, idx, onDownload }) => {
       </td>
       <td className="px-4 py-4 text-center">
         {item.pdf_url && (
-          <button
-            onClick={() => onDownload(item.pdf_url, item.full_name)}
-            className="p-2.5 bg-white border border-slate-200 text-pink-500 rounded-xl hover:bg-pink-500 hover:text-white hover:border-pink-500 transition-all shadow-sm"
-            title="Download PDF"
-          >
-            <Download size={16} />
-          </button>
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={() => onPreview(item.pdf_url)}
+              className="p-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all shadow-sm"
+              title="Preview PDF"
+            >
+              <Eye size={16} />
+            </button>
+            <button
+              onClick={() => onDownload(item.pdf_url, item.full_name)}
+              className="p-2.5 bg-white border border-slate-200 text-pink-500 rounded-xl hover:bg-pink-500 hover:text-white hover:border-pink-500 transition-all shadow-sm"
+              title="Download PDF"
+            >
+              <Download size={16} />
+            </button>
+          </div>
         )}
       </td>
     </motion.tr>
   );
 };
 
-export const SubmissionCard = ({ item, idx, onDownload }) => {
+export const SubmissionCard = ({ item, idx, onDownload, onPreview }) => {
   return (
     <motion.div 
       initial={{ opacity: 0, x: -20 }}
@@ -130,13 +139,22 @@ export const SubmissionCard = ({ item, idx, onDownload }) => {
 
       <div className="flex gap-2">
         {item.pdf_url && (
-          <button 
-            onClick={() => onDownload(item.pdf_url, item.full_name)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-pink-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-pink-100 active:scale-95 transition-all"
-          >
-            <Download size={12} />
-            Download
-          </button>
+          <>
+            <button
+              onClick={() => onPreview(item.pdf_url)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all"
+            >
+              <Eye size={12} />
+              Preview
+            </button>
+            <button
+              onClick={() => onDownload(item.pdf_url, item.full_name)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-pink-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-pink-100 active:scale-95 transition-all"
+            >
+              <Download size={12} />
+              Download
+            </button>
+          </>
         )}
       </div>
     </motion.div>

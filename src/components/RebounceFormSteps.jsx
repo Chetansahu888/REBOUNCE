@@ -18,7 +18,7 @@ export const Step1 = ({ formData, setFormData, onNext, loading }) => (
   >
     <div className="w-full">
       <h2 className="text-3xl font-black text-slate-800 mb-2 text-center tracking-tight uppercase">
-        WELCOME TO <span className="text-[#FF1493]">REBOUNCE</span>
+        WELCOME TO <span className="text-[#FF1493]">LEVLZ</span>
       </h2>
       <p className="text-center text-slate-500 font-medium mb-8">Ready to jump?</p>
 
@@ -177,7 +177,7 @@ export const Step3 = ({ formData, setFormData, onBack, onSubmit, sigCanvas, load
     initial={{ opacity: 0, x: 20 }}
     animate={{ opacity: 1, x: 0 }}
     exit={{ opacity: 0, x: -20 }}
-    className="flex flex-col h-full md:h-auto"
+    className="flex flex-col h-full"
   >
     <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide pb-6 px-1">
       <h2 className="text-xl font-bold text-slate-800 mb-2 text-center">
@@ -238,12 +238,12 @@ export const Step3 = ({ formData, setFormData, onBack, onSubmit, sigCanvas, load
       </div>
     </div>
 
-    <div className="flex gap-3 pt-4 border-t border-white/40 bg-white/20 -mx-6 -mb-6 p-6 md:-mx-8 md:-mb-8 md:p-8 rounded-b-[2rem] md:rounded-b-[2.5rem]">
+    <div className="flex gap-3 pt-3 border-t border-white/40 bg-white/20 -mx-6 -mb-6 p-4 md:-mx-8 md:-mb-8 md:p-5 rounded-b-[2rem] md:rounded-b-[2.5rem]">
       <motion.button
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         onClick={onBack}
-        className="w-1/3 py-4 text-slate-600 bg-white/40 border border-white/60 font-bold rounded-2xl hover:bg-white/60 transition-all uppercase tracking-wider"
+        className="w-1/3 py-2.5 text-sm text-slate-600 bg-white/40 border border-white/60 font-bold rounded-2xl hover:bg-white/60 transition-all uppercase tracking-wider"
       >
         Back
       </motion.button>
@@ -252,7 +252,7 @@ export const Step3 = ({ formData, setFormData, onBack, onSubmit, sigCanvas, load
         whileTap={formData.agreed && !loading ? { scale: 0.95 } : {}}
         onClick={onSubmit}
         disabled={!formData.agreed || loading}
-        className="w-2/3 bg-[#FF1493] text-white font-black py-4 rounded-2xl shadow-lg transition-all uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-2/3 bg-[#FF1493] text-white font-black py-2.5 text-sm rounded-2xl shadow-lg transition-all uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {loading ? (
           <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -316,11 +316,10 @@ export const Step5 = ({ pdfPreviewUrl, onDownload, onSkip }) => (
       {pdfPreviewUrl ? (
         <div className="w-full h-full relative overflow-hidden bg-white">
           <iframe
-            src={`https://docs.google.com/viewer?url=${encodeURIComponent(pdfPreviewUrl)}&embedded=true`}
+            src={`${pdfPreviewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
             className="absolute inset-0 w-full h-full border-none"
             title="Waiver Preview"
           />
-          <div className="absolute inset-0 z-10 pointer-events-none" />
         </div>
       ) : (
         <div className="flex items-center justify-center h-full text-slate-400 font-bold uppercase text-xs tracking-widest">

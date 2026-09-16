@@ -233,6 +233,10 @@ const Dashboard = () => {
     toast.success('Logged out successfully');
   };
 
+  const previewWaiver = (url) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   const downloadWaiver = async (url, name) => {
     try {
       const response = await fetch(url);
@@ -344,6 +348,7 @@ const Dashboard = () => {
                         item={item}
                         idx={idx}
                         onDownload={downloadWaiver}
+                        onPreview={previewWaiver}
                       />
                     ))
                   )}
@@ -368,6 +373,7 @@ const Dashboard = () => {
                     item={item}
                     idx={idx}
                     onDownload={downloadWaiver}
+                    onPreview={previewWaiver}
                   />
                 ))
               )}
