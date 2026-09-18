@@ -342,7 +342,7 @@ const Settings = () => {
         .font-montserrat { font-family: 'Montserrat', sans-serif; }
         .scrollbar-custom::-webkit-scrollbar { width: 6px; }
         .scrollbar-custom::-webkit-scrollbar-track { background: transparent; }
-        .scrollbar-custom::-webkit-scrollbar-thumb { background: rgba(255, 20, 147, 0.1); border-radius: 10px; }
+        .scrollbar-custom::-webkit-scrollbar-thumb { background: rgba(46, 30, 135, 0.1); border-radius: 10px; }
       `}</style>
     </div>
   );

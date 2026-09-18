@@ -11,6 +11,22 @@ import AntiGravityBackground from '../components/AntiGravityBackground';
 import { supabase } from '../supabase';
 import { Step1, Step2, Step3, Step4, Step5 } from '../components/RebounceFormSteps';
 import BotivateFooter from '../components/BotivateFooter';
+import logo from '../Assets/logo.png';
+
+const loadImageAsDataURL = (url, maxWidth) =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = maxWidth ? Math.min(1, maxWidth / img.naturalWidth) : 1;
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth * scale;
+      canvas.height = img.naturalHeight * scale;
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
 
 const WAIVER_TEXT = `<strong>Participant Agreement, Release and Assumption of Risk Agreement</strong>
 (LEVLZ RAIPUR LLP)
@@ -211,25 +227,35 @@ const RebounceForm = () => {
   }, [step]);
 
 
-  const generatePDF = (data) => {
+  const generatePDF = async (data) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 20;
     const contentWidth = pageWidth - (margin * 2);
 
+    try {
+      const logoDataUrl = await loadImageAsDataURL(logo, 400);
+      const logoWidth = 32;
+      const logoHeight = logoWidth * (1735 / 2644);
+      doc.addImage(logoDataUrl, 'PNG', pageWidth - margin - logoWidth, 12, logoWidth, logoHeight);
+    } catch (e) {
+      // logo is decorative; skip silently if it fails to load
+    }
+
     doc.setFontSize(10);
-    doc.text(`--Participant: ${data.fullName}`, margin, 40);
-    doc.text(`Signed By: ${data.fullName}`, margin, 48);
-    doc.text(`Signed: ${format(new Date(data.submittedAt), 'd/M/yyyy HH:mm')}`, margin, 56);
+    doc.text(`--Participant: ${data.fullName}`, margin, 18);
+    doc.text(`Signed By: ${data.fullName}`, margin, 25);
+    doc.text(`Signed: ${format(new Date(data.submittedAt), 'd/M/yyyy HH:mm')}`, margin, 32);
 
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("Participant Agreement, Release and Assumption of Risk Agreement", pageWidth / 2, 75, { align: 'center' });
-    doc.text("(LEVLZ RAIPUR LLP)", pageWidth / 2, 82, { align: 'center' });
+    doc.text("Participant Agreement, Release and Assumption of Risk Agreement", pageWidth / 2, 48, { align: 'center' });
+    doc.text("(LEVLZ RAIPUR LLP)", pageWidth / 2, 55, { align: 'center' });
 
-    let yPos = 95;
+    let yPos = 68;
     const pageHeight = doc.internal.pageSize.getHeight();
-    const lines = WAIVER_TEXT.split('\n');
+    // Skip the leading title lines - already rendered once above as the centered bold heading.
+    const lines = WAIVER_TEXT.split('\n').slice(2);
 
     lines.forEach(line => {
       if (!line.trim()) {
@@ -313,7 +339,7 @@ const RebounceForm = () => {
     setLoading(true);
 
     try {
-      const pdfBlob = generatePDF(finalData);
+      const pdfBlob = await generatePDF(finalData);
       const fileName = `waiver_${Date.now()}_${formData.fullName.replace(/\s+/g, '_')}.pdf`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('wavier').upload(fileName, pdfBlob, { contentType: 'application/pdf' });

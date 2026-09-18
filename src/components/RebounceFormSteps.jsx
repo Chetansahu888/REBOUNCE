@@ -5,6 +5,7 @@ import DatePicker from 'react-datepicker';
 import { Check, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import SignatureCanvas from 'react-signature-canvas';
+import logo from '../Assets/logo.png';
 
 const inputStyles = "w-full box-border text-left bg-white/40 border border-white/60 rounded-2xl px-4 py-3 outline-none focus:border-[#FF1493] focus:ring-2 focus:ring-[#FF1493]/20 transition-all text-slate-800 placeholder:text-slate-400 backdrop-blur-md shadow-inner text-base md:text-sm";
 const labelStyles = "block text-sm font-bold text-slate-700 mb-2 ml-1 uppercase tracking-wider";
@@ -17,8 +18,9 @@ export const Step1 = ({ formData, setFormData, onNext, loading }) => (
     className="w-full"
   >
     <div className="w-full">
+      <img src={logo} alt="LEVLZ" className="h-28 sm:h-32 w-auto mx-auto mb-4 object-contain" />
       <h2 className="text-3xl font-black text-slate-800 mb-2 text-center tracking-tight uppercase">
-        WELCOME TO <span className="text-[#FF1493]">LEVLZ</span>
+        WELCOME TO <span className="text-[#2E1E87]">LEVLZ</span>
       </h2>
       <p className="text-center text-slate-500 font-medium mb-8">Ready to jump?</p>
 
@@ -49,7 +51,7 @@ export const Step1 = ({ formData, setFormData, onNext, loading }) => (
     </div>
 
     <motion.button
-      whileHover={!loading ? { scale: 1.05, boxShadow: '0 10px 20px rgba(255,20,147,0.2)' } : {}}
+      whileHover={!loading ? { scale: 1.05, boxShadow: '0 10px 20px rgba(46, 30, 135,0.2)' } : {}}
       whileTap={!loading ? { scale: 0.95 } : {}}
       onClick={onNext}
       disabled={formData.mobile.length < 10 || loading}
@@ -248,7 +250,7 @@ export const Step3 = ({ formData, setFormData, onBack, onSubmit, sigCanvas, load
         Back
       </motion.button>
       <motion.button
-        whileHover={formData.agreed && !loading ? { scale: 1.05, boxShadow: '0 10px 25px rgba(255,20,147,0.3)' } : {}}
+        whileHover={formData.agreed && !loading ? { scale: 1.05, boxShadow: '0 10px 25px rgba(46, 30, 135,0.3)' } : {}}
         whileTap={formData.agreed && !loading ? { scale: 0.95 } : {}}
         onClick={onSubmit}
         disabled={!formData.agreed || loading}

@@ -107,7 +107,7 @@ const Login = () => {
             </div>
 
             <motion.button
-              whileHover={{ scale: 1.05, boxShadow: '0 10px 25px rgba(255,20,147,0.3)' }}
+              whileHover={{ scale: 1.05, boxShadow: '0 10px 25px rgba(46, 30, 135,0.3)' }}
               whileTap={{ scale: 0.95 }}
               type="submit"
               disabled={loading}
