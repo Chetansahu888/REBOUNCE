@@ -142,7 +142,7 @@ const RebounceForm = () => {
     const url = URL.createObjectURL(pdfBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Levlz_Waiver_${formData.fullName.replace(/\s+/g, '_')}.pdf`;
+    link.download = `Rebounce_Waiver_${formData.fullName.replace(/\s+/g, '_')}.pdf`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

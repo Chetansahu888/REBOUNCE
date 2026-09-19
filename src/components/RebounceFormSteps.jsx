@@ -18,9 +18,9 @@ export const Step1 = ({ formData, setFormData, onNext, loading }) => (
     className="w-full"
   >
     <div className="w-full">
-      <img src={logo} alt="LEVLZ" className="h-28 sm:h-32 w-auto mx-auto mb-4 object-contain" />
+      <img src={logo} alt="REBOUNCE" className="h-28 sm:h-32 w-auto mx-auto mb-4 object-contain" />
       <h2 className="text-3xl font-black text-slate-800 mb-2 text-center tracking-tight uppercase">
-        WELCOME TO <span className="text-[#2E1E87]">LEVLZ</span>
+        WELCOME TO <span className="text-[#2E1E87]">REBOUNCE</span>
       </h2>
       <p className="text-center text-slate-500 font-medium mb-8">Ready to jump?</p>
 

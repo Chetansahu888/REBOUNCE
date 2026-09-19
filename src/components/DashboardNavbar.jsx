@@ -15,7 +15,7 @@ const DashboardNavbar = ({ user, onLogout, onSettings }) => {
         </motion.div>
         <div>
           <h1 className="text-lg md:text-xl font-black text-slate-900 tracking-tight leading-none">
-            LEVLZ <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF1493] to-[#00B0FF]">DASHBOARD</span>
+            REBOUNCE <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF1493] to-[#00B0FF]">DASHBOARD</span>
           </h1>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 hidden md:block">Admin Management Portal</p>
         </div>
