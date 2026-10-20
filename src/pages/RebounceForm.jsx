@@ -342,11 +342,11 @@ const RebounceForm = () => {
       const pdfBlob = await generatePDF(finalData);
       const fileName = `waiver_${Date.now()}_${formData.fullName.replace(/\s+/g, '_')}.pdf`;
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('wavier').upload(fileName, pdfBlob, { contentType: 'application/pdf' });
+        .from('pdf').upload(fileName, pdfBlob, { contentType: 'application/pdf' });
 
       if (uploadError) throw uploadError;
 
-      const pdfUrl = uploadData ? supabase.storage.from('wavier').getPublicUrl(uploadData.path).data.publicUrl : null;
+      const pdfUrl = uploadData ? supabase.storage.from('pdf').getPublicUrl(uploadData.path).data.publicUrl : null;
 
       const { error: supabaseError } = await supabase.from('submissions').insert([{
         full_name: formData.fullName, email: formData.email, mobile: formData.mobile,
